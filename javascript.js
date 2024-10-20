@@ -2,15 +2,18 @@
  A Cell represents one square on the board and can have one of the following:
  1. "X" - cross
  2. "O" - nought
- 3. null - empty
+ 3. "empty" - empty
  */
 function Cell() {
-  let value = null;
+  let value = "empty";
   const addToken = (player) => {
     value = player;
   };
   const getValue = () => value;
-  return { addToken, getValue };
+  const setEmptyValue = () => {
+    value = "empty";
+  };
+  return { addToken, getValue, setEmptyValue };
 }
 
 /*
@@ -37,24 +40,50 @@ function Gameboard() {
   const getBoard = () => board;
 
   // drop a token at an empty cell
+  let tokenDropped = false;
   const dropToken = (player, row, column) => {
-    if (board[row][column].getValue() === null) {
+    if (board[row][column].getValue() === "empty") {
+      tokenDropped = true;
       board[row][column].addToken(player);
     } else {
+      tokenDropped = false;
       return;
     }
   };
 
-  // get and print current board to console
+  const getTokenDroppedStatus = () => tokenDropped;
+
+  // get new board
+  const getNewBoard = () => {
+    const newBoard = board.map((row) =>
+      row.map((cell) => cell.setEmptyValue())
+    );
+    return newBoard;
+  };
+
+  // get current board
   const getCurrentBoard = () => {
     const boardWithCellValues = board.map((row) =>
       row.map((cell) => cell.getValue())
     );
-    console.log(boardWithCellValues);
     return boardWithCellValues;
   };
 
-  return { getBoard, dropToken, getCurrentBoard };
+  //   print current board to console
+  const printCurrentBoard = () => {
+    console.log(getCurrentBoard());
+  };
+
+  return {
+    getBoard,
+    dropToken,
+    getCurrentBoard,
+    printCurrentBoard,
+    getNewBoard,
+    getTokenDroppedStatus,
+    rows,
+    columns,
+  };
 }
 
 /* 
@@ -68,6 +97,7 @@ function GameController(playerCross = "X", playerNought = "O") {
     { name: playerCross, token: "X" },
     { name: playerNought, token: "O" },
   ];
+
   let activePlayer = players[0];
   const switchPlayerTurn = () => {
     activePlayer = activePlayer === players[0] ? players[1] : players[0];
@@ -75,18 +105,21 @@ function GameController(playerCross = "X", playerNought = "O") {
   const getActivePlayer = () => activePlayer;
 
   const printNewRound = () => {
-    board.getCurrentBoard();
+    board.printCurrentBoard();
     console.log(`${getActivePlayer().name}'s turn`);
   };
+
   const playRound = (row, column) => {
     // drop a token from current active player
     console.log(
       `Dropping ${getActivePlayer().token} to row ${row} column ${column}...`
     );
     board.dropToken(getActivePlayer().token, row, column);
-    board.getCurrentBoard();
+    board.printCurrentBoard();
+
     // check for winner
     // if three tokens of a row/column/diagonal are the same, the player of that token wins the game
+    let hasResult = false;
     const checkForWinner = () => {
       const countToken = (token) => {
         return board
@@ -96,9 +129,9 @@ function GameController(playerCross = "X", playerNought = "O") {
 
       const getTokenLocations = (token) => {
         const locations = [];
-        for (let i = 0; i < 2; i++) {
-          for (let j = 0; j < 2; j++) {
-            if (board.getCurrentBoard()[i][j].getValue() === token) {
+        for (let i = 0; i < board.rows; i++) {
+          for (let j = 0; j < board.columns; j++) {
+            if (board.getCurrentBoard()[i][j] === token) {
               locations.push([i, j]);
             }
           }
@@ -107,7 +140,6 @@ function GameController(playerCross = "X", playerNought = "O") {
       };
 
       const checkTokenLocations = (locations, token) => {
-        const showWinner = console.log(`The winner is ${token}!`);
         let locNums = [0, 1, 2];
         // check if row or column condition is met
         for (let locNum of locNums) {
@@ -115,7 +147,10 @@ function GameController(playerCross = "X", playerNought = "O") {
             locations.filter((loc) => loc[0] === locNum).length === 3 ||
             locations.filter((loc) => loc[1] === locNum).length === 3
           ) {
-            return showWinner;
+            hasResult = true;
+            console.log(`The winner is ${token}!`);
+            board.getNewBoard();
+            printNewRound();
           }
         }
         //check if diagonal condition is met
@@ -129,22 +164,57 @@ function GameController(playerCross = "X", playerNought = "O") {
           [1, 1],
           [2, 0],
         ];
+        const includesArray = (locations, loc) => {
+          return locations.some((subLoc) =>
+            subLoc.every((element, index) => element === loc[index])
+          );
+        };
         if (
-          diagonalOne.every((loc) => locations.includes(loc)) ||
-          diagonalTwo.every((loc) => locations.includes(loc))
+          diagonalOne.every((loc) => includesArray(locations, loc)) ||
+          diagonalTwo.every((loc) => includesArray(locations, loc))
         ) {
-          return showWinner;
+          hasResult = true;
+          console.log(`The winner is ${token}!`);
+          board.getNewBoard();
+          printNewRound();
         }
       };
-
-      // !!! check winner
-      if (countToken(players[0].token) < 3) {
-        if (countToken(players[1].token) < 3) {
-          return;
-        } else {
-        }
-      }
+      return { countToken, getTokenLocations, checkTokenLocations };
     };
+
+    //check winner and draw
+    const playerTokenLocations = checkForWinner().getTokenLocations(
+      getActivePlayer().token
+    );
+    console.log(`active token's locations: ${playerTokenLocations}`);
+
+    checkForWinner().checkTokenLocations(
+      playerTokenLocations,
+      getActivePlayer().token
+    );
+
+    // draw
+    if (!board.getCurrentBoard().some((row) => row.includes("empty"))) {
+      hasResult = true;
+      console.log("It's a draw!");
+      board.getNewBoard();
+      printNewRound();
+    }
+
+    // Switch player turn
+    if (hasResult === false && board.getTokenDroppedStatus() === true) {
+      switchPlayerTurn();
+      printNewRound();
+    }
+  };
+
+  // Initial play game message
+  printNewRound();
+  // For the console version, we will only use playRound, but we will need
+  // getActivePlayer for the UI version, so I'm revealing it now
+  return {
+    playRound,
+    getActivePlayer,
   };
 }
 
@@ -152,3 +222,24 @@ function GameController(playerCross = "X", playerNought = "O") {
 Play the game in console 
 */
 const game = GameController();
+// draw
+// game.playRound(1, 1);
+// game.playRound(1, 2);
+// game.playRound(1, 0);
+// game.playRound(0, 1);
+// game.playRound(2, 1);
+// game.playRound(0, 0);
+// game.playRound(0, 2);
+// game.playRound(2, 0);
+// game.playRound(2, 2);
+
+// X wins
+game.playRound(1, 1); //x
+game.playRound(1, 2); //o
+game.playRound(1, 0); //x
+game.playRound(0, 0); //o
+game.playRound(0, 2); //x
+game.playRound(2, 2); //o
+game.playRound(0, 1); //x
+game.playRound(2, 0); //o
+game.playRound(2, 1); //x
