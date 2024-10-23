@@ -5,22 +5,22 @@
  3. "empty" - empty
  */
 function Cell() {
-  let value = "";
+  let value = "empty";
   const addToken = (player) => {
     value = player;
   };
   const getValue = () => value;
   const setEmptyValue = () => {
-    value = "";
+    value = "empty";
   };
   return { addToken, getValue, setEmptyValue };
 }
 
 /*
-   Create a Gameboard to represent the state of the board;
-   Each square holds a Cell;
-   Expose a dropToken method to add Cells to squares
-   */
+ Create a Gameboard to represent the state of the board;
+ Each square holds a Cell;
+ Expose a dropToken method to add Cells to squares
+ */
 function Gameboard() {
   const rows = 3;
   const columns = 3;
@@ -42,7 +42,7 @@ function Gameboard() {
   // drop a token at an empty cell
   let tokenDropped = false;
   const dropToken = (player, row, column) => {
-    if (board[row][column].getValue() === "") {
+    if (board[row][column].getValue() === "empty") {
       tokenDropped = true;
       board[row][column].addToken(player);
     } else {
@@ -87,10 +87,10 @@ function Gameboard() {
 }
 
 /* 
-  The GameController will be responsible for: 
-  1. controlling the flow and state of the game's turns
-  2. whether anybody has won the game 
-  */
+The GameController will be responsible for: 
+1. controlling the flow and state of the game's turns
+2. whether anybody has won the game 
+*/
 function GameController(playerCross = "X", playerNought = "O") {
   const board = Gameboard();
   const players = [
@@ -110,19 +110,16 @@ function GameController(playerCross = "X", playerNought = "O") {
   };
 
   const playRound = (row, column) => {
-    let hasResult = false;
-    const result = document.querySelector(".result");
-
     // drop a token from current active player
     console.log(
       `Dropping ${getActivePlayer().token} to row ${row} column ${column}...`
     );
     board.dropToken(getActivePlayer().token, row, column);
-    result.textContent = "";
     board.printCurrentBoard();
 
     // check for winner
     // if three tokens of a row/column/diagonal are the same, the player of that token wins the game
+    let hasResult = false;
     const checkForWinner = () => {
       const countToken = (token) => {
         return board
@@ -152,7 +149,6 @@ function GameController(playerCross = "X", playerNought = "O") {
           ) {
             hasResult = true;
             console.log(`The winner is ${token}!`);
-            result.textContent = `The winner is ${token}!`;
             board.getNewBoard();
             printNewRound();
           }
@@ -179,7 +175,6 @@ function GameController(playerCross = "X", playerNought = "O") {
         ) {
           hasResult = true;
           console.log(`The winner is ${token}!`);
-          result.textContent = `The winner is ${token}!`;
           board.getNewBoard();
           printNewRound();
         }
@@ -199,10 +194,9 @@ function GameController(playerCross = "X", playerNought = "O") {
     );
 
     // draw
-    if (!board.getCurrentBoard().some((row) => row.includes(""))) {
+    if (!board.getCurrentBoard().some((row) => row.includes("empty"))) {
       hasResult = true;
       console.log("It's a draw!");
-      result.textContent = "It's a draw!";
       board.getNewBoard();
       printNewRound();
     }
@@ -221,66 +215,31 @@ function GameController(playerCross = "X", playerNought = "O") {
   return {
     playRound,
     getActivePlayer,
-    getBoard: board.getBoard,
   };
 }
 
-function ScreenController() {
-  const game = GameController();
-  const playerTurnDiv = document.querySelector(".turn");
-  const boardDiv = document.querySelector(".board");
-  const result = document.querySelector(".result");
+/* 
+Play the game in console 
+*/
+const game = GameController();
+// draw
+// game.playRound(1, 1);
+// game.playRound(1, 2);
+// game.playRound(1, 0);
+// game.playRound(0, 1);
+// game.playRound(2, 1);
+// game.playRound(0, 0);
+// game.playRound(0, 2);
+// game.playRound(2, 0);
+// game.playRound(2, 2);
 
-  const updateScreen = () => {
-    // clear the board
-    boardDiv.textContent = "";
-
-    // get the latest version of the board and player turn
-    const board = game.getBoard();
-    const activePlayer = game.getActivePlayer();
-
-    // Display player's turn
-    playerTurnDiv.textContent = `${activePlayer.token}'s turn...`;
-
-    // render board squares
-    let rowCount = -1;
-    board.forEach((row) => {
-      row.forEach((cell, index) => {
-        // create cell as clickable button
-        const cellButton = document.createElement("button");
-        cellButton.classList.add("cell");
-        // create data attribute to identify column and row of each cell
-        cellButton.dataset.column = index;
-        // console.log(cellButton.dataset.column);
-        if (index === 0) {
-          rowCount += 1;
-        }
-        cellButton.dataset.row = rowCount;
-        // console.log(cellButton.dataset.row);
-        cellButton.textContent = cell.getValue();
-        boardDiv.appendChild(cellButton);
-      });
-    });
-  };
-
-  //   add event listener for the board
-  function clickHandlerBoard(e) {
-    const selectedColumn = e.target.dataset.column;
-    // console.log(selectedColumn);
-    const selectedRow = e.target.dataset.row;
-    // console.log(selectedRow);
-    // make sure it's the cell and not the gap that's clicked
-    if (!(selectedColumn || selectedRow)) return;
-
-    game.playRound(selectedRow, selectedColumn);
-    updateScreen();
-  }
-
-  //   board click event
-  boardDiv.addEventListener("click", clickHandlerBoard);
-
-  // Initial render
-  updateScreen();
-}
-
-ScreenController();
+// X wins
+game.playRound(1, 1); //x
+game.playRound(1, 2); //o
+game.playRound(1, 0); //x
+game.playRound(0, 0); //o
+game.playRound(0, 2); //x
+game.playRound(2, 2); //o
+game.playRound(0, 1); //x
+game.playRound(2, 0); //o
+game.playRound(2, 1); //x
